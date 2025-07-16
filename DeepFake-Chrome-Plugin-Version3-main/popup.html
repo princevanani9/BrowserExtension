@@ -1,0 +1,478 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <title>Image Classifier</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            padding: 24px;
+            width: 380px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: #2d3748;
+            min-height: 600px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        body::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(20px);
+            border-radius: 20px;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            z-index: -1;
+            margin: -24px;
+        }
+
+        body::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 4px;
+            background: linear-gradient(90deg, #667eea, #764ba2, #f093fb, #f5576c);
+            background-size: 200% 100%;
+            animation: gradient-shift 3s ease infinite;
+            z-index: 1;
+            border-radius: 20px 20px 0 0;
+        }
+
+        @keyframes gradient-shift {
+            0%, 100% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+        }
+
+        h2 {
+            text-align: center;
+            font-size: 1.75rem;
+            font-weight: 700;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: 24px;
+            letter-spacing: -0.025em;
+            position: relative;
+            z-index: 2;
+        }
+
+        .section {
+            margin-bottom: 24px;
+            position: relative;
+            z-index: 2;
+        }
+
+        input[type="text"] {
+            width: 100%;
+            margin-top: 8px;
+            margin-bottom: 16px;
+            padding: 14px 16px;
+            font-size: 0.95rem;
+            font-weight: 400;
+            border: 2px solid rgba(226, 232, 240, 0.8);
+            border-radius: 12px;
+            background: rgba(255, 255, 255, 0.9);
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            font-family: inherit;
+        }
+
+        input[type="text"]:focus {
+            outline: none;
+            border-color: #667eea;
+            background: rgba(255, 255, 255, 1);
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+            transform: translateY(-1px);
+        }
+
+        button {
+            width: 100%;
+            padding: 14px 20px;
+            margin-bottom: 12px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 12px;
+            font-weight: 600;
+            font-size: 0.95rem;
+            cursor: pointer;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
+            position: relative;
+            overflow: hidden;
+            font-family: inherit;
+            letter-spacing: 0.025em;
+        }
+
+        button::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+            transition: left 0.5s;
+        }
+
+        button:hover::before {
+            left: 100%;
+        }
+
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(102, 126, 234, 0.6);
+        }
+
+        button:active {
+            transform: translateY(0);
+            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
+        }
+
+        .custom-file-upload {
+            display: block;
+            text-align: center;
+            padding: 14px 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            font-weight: 600;
+            border-radius: 12px;
+            cursor: pointer;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
+            margin-bottom: 8px;
+            position: relative;
+            overflow: hidden;
+            font-family: inherit;
+            letter-spacing: 0.025em;
+        }
+
+        .custom-file-upload::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+            transition: left 0.5s;
+        }
+
+        .custom-file-upload:hover::before {
+            left: 100%;
+        }
+
+        .custom-file-upload:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(102, 126, 234, 0.6);
+        }
+
+        #imageFile {
+            display: none;
+        }
+
+        #file-name {
+            font-size: 0.85rem;
+            color: #718096;
+            margin-bottom: 16px;
+            text-align: center;
+            font-weight: 500;
+        }
+
+        label {
+            font-weight: 600;
+            color: #4a5568;
+            font-size: 0.9rem;
+            letter-spacing: 0.025em;
+        }
+
+        #dropZone {
+            border: 2px dashed rgba(160, 174, 192, 0.6);
+            padding: 32px 20px;
+            text-align: center;
+            margin-bottom: 24px;
+            color: #718096;
+            border-radius: 16px;
+            background: rgba(248, 250, 252, 0.8);
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            font-weight: 500;
+            position: relative;
+            overflow: hidden;
+        }
+
+        #dropZone::before {
+            content: '📁';
+            display: block;
+            font-size: 2rem;
+            margin-bottom: 8px;
+            opacity: 0.7;
+        }
+
+        #dropZone.drag-over {
+            border-color: #667eea;
+            background: rgba(102, 126, 234, 0.1);
+            color: #667eea;
+            transform: scale(1.02);
+            box-shadow: 0 8px 25px rgba(102, 126, 234, 0.2);
+        }
+
+        #preview {
+            display: block;
+            max-width: 100%;
+            margin: 16px auto;
+            border-radius: 12px;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15);
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        #preview:hover {
+            transform: scale(1.05);
+            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.2);
+        }
+
+        #spinner {
+            display: none;
+            margin: 16px auto;
+            border: 3px solid rgba(102, 126, 234, 0.2);
+            border-top: 3px solid #667eea;
+            border-radius: 50%;
+            width: 32px;
+            height: 32px;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        #confidenceBarContainer {
+            display: none;
+            background: rgba(226, 232, 240, 0.6);
+            border-radius: 8px;
+            overflow: hidden;
+            margin: 16px 0;
+            height: 8px;
+            position: relative;
+        }
+
+        #confidenceBar {
+            height: 100%;
+            background: linear-gradient(90deg, #667eea, #764ba2);
+            width: 0%;
+            transition: width 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+            position: relative;
+        }
+
+        #confidenceBar::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent);
+            animation: shimmer 2s infinite;
+        }
+
+        @keyframes shimmer {
+            0% { transform: translateX(-100%); }
+            100% { transform: translateX(100%); }
+        }
+
+        #result {
+            margin-top: 20px;
+            font-weight: 600;
+            color: #667eea;
+            text-align: center;
+            font-size: 1.1rem;
+            padding: 16px;
+            background: rgba(102, 126, 234, 0.1);
+            border-radius: 12px;
+            border: 1px solid rgba(102, 126, 234, 0.2);
+        }
+
+        #imageList {
+            max-height: 220px;
+            overflow-y: auto;
+            border: 1px solid rgba(226, 232, 240, 0.8);
+            background: rgba(248, 250, 252, 0.9);
+            padding: 12px;
+            border-radius: 12px;
+            box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.06);
+        }
+
+        #imageList::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        #imageList::-webkit-scrollbar-track {
+            background: rgba(241, 245, 249, 0.5);
+            border-radius: 3px;
+        }
+
+        #imageList::-webkit-scrollbar-thumb {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            border-radius: 3px;
+        }
+
+        #imageList::-webkit-scrollbar-thumb:hover {
+            background: linear-gradient(135deg, #5a67d8, #6b46c1);
+        }
+
+        #imageList img {
+            max-width: 64px;
+            max-height: 64px;
+            margin: 6px;
+            border: 2px solid transparent;
+            border-radius: 8px;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            cursor: pointer;
+            object-fit: cover;
+        }
+
+        #imageList img:hover {
+            transform: scale(1.1);
+            border-color: rgba(160, 174, 192, 0.8);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+        }
+
+        #imageList img.selected {
+            border: 2px solid #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.2);
+            transform: scale(1.05);
+        }
+
+        #imageList p {
+            margin: 0;
+            color: #718096;
+            font-style: italic;
+            text-align: center;
+            padding: 20px;
+        }
+
+        hr {
+            border: none;
+            height: 1px;
+            background: linear-gradient(90deg, transparent, rgba(160, 174, 192, 0.4), transparent);
+            margin: 16px 0;
+        }
+
+        /* Remove container-related styles */
+        .glass {
+            background: rgba(255, 255, 255, 0.25);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.18);
+        }
+
+        /* Ensure all content is above the background */
+        input, button, .custom-file-upload, #dropZone, #imageList, #result, #spinner, #confidenceBarContainer, #preview {
+            position: relative;
+            z-index: 2;
+        }
+
+        /* Subtle animations */
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .section {
+            animation: fadeIn 0.5s ease-out;
+        }
+
+        /* Enhanced focus states */
+        button:focus,
+        .custom-file-upload:focus {
+            outline: none;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.3);
+        }
+
+        input[type="text"]:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+    </style>
+</head>
+<body>
+    <h2>Image Real/Fake Classifier</h2>
+
+    <div id="dropZone" class="section">
+        Drag & Drop Image File Here
+    </div>
+
+    <div class="section">
+        <label for="imageFile" class="custom-file-upload">Choose Image File</label>
+        <input type="file" id="imageFile" accept="image/*">
+        <div id="file-name">No file chosen</div>
+
+        <label for="imageURL">Or Enter Image URL:</label>
+        <input type="text" id="imageURL" placeholder="Paste image URL here">
+
+        <img id="preview" style="display: none;"/>
+    </div>
+
+    <div id="spinner"></div>
+
+    <div id="confidenceBarContainer">
+        <div id="confidenceBar"></div>
+    </div>
+
+    <div class="section">
+        <button id="predictButton">Predict from Input</button>
+        <hr />
+        <button id="captureVisibleTabButton">Capture Visible Tab</button>
+        <button id="extractImagesButton">Extract Images from Page</button>
+    </div>
+
+    <div id="imageList" class="section">
+        <p style="margin: 0;">Click "Extract Images from Page" to see images here.</p>
+    </div>
+
+    <button id="predictSelectedImageButton" style="display: none;">Predict Selected Image</button>
+
+    <p id="result"></p>
+
+    <script>
+        // Debug logging to check if elements are found
+        document.addEventListener('DOMContentLoaded', () => {
+            console.log('DOM loaded');
+            
+            // Check if all elements exist
+            const elements = [
+                'imageFile', 'imageURL', 'predictButton', 'captureVisibleTabButton', 
+                'extractImagesButton', 'imageList', 'predictSelectedImageButton', 
+                'result', 'dropZone', 'file-name', 'preview', 'spinner', 
+                'confidenceBarContainer', 'confidenceBar'
+            ];
+            
+            elements.forEach(id => {
+                const element = document.getElementById(id);
+                if (!element) {
+                    console.error(Element with ID '${id}' not found);
+                } else {
+                    console.log(Element '${id}' found);
+                }
+            });
+        });
+    </script>
+    <script src="popup.js"></script>
+</body>
+</html>
